@@ -39,7 +39,7 @@ The ATTiny84 has 12 I/O pins, whereof 7 are used for connecting with the keypad.
 
 I'm using the suitable [Arduiono keypad library](https://playground.arduino.cc/Code/Keypad/) to use in the ATTiny84 for interfacing with matrix keypads - saving me time to try to implement it myself.
 
-The implementation on the RPi3 is based on the DetectEdge functionality in the [go-rpi](https://www..com) library. So that when the ATTiny84 had detects a key press it sets the 4 data output pins corresponding to the key that was pressed, and pulls one pin low. This is detected by the RPi3 which reads out the data in parallell from the ATTiny84, allowing for fast detection of key presses and fast data transfer.
+The implementation on the RPi3 is based on the DetectEdge functionality in the [go-rpi](https://github.com/stianeikeland/go-rpio) library. So that when the ATTiny84 had detects a key press it sets the 4 data output pins corresponding to the key that was pressed, and pulls one pin low. This is detected by the RPi3 which reads out the data in parallell from the ATTiny84, allowing for fast detection of key presses and fast data transfer.
 
 Beside the keypad, I also needed two ordinary push buttons on the terminal, and when testing the implementation I got some strange behavior... There seems to be an issue when not using debounced buttons (generating a lot of interrupts) that may cause freezes. I therefore want to point out the workaround explained in the [discussion thread](https://github.com/stianeikeland/go-rpio/issues/35) which can be used if no other application is dependent on interrupts. 
 
