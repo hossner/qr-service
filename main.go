@@ -24,6 +24,7 @@ import (
 	"github.com/stianeikeland/go-rpio"
 )
 
+// Red harring - use of retrieving from config file not implemented
 const configFileName string = "qr-service.cfg"
 
 // The different modes of the display
@@ -75,11 +76,6 @@ type displayCmd struct {
 	char            byte
 }
 
-// Command data to send to eInk display
-// type einkCmd struct {
-// 	data []byte
-// }
-
 // State info for swishMode
 type swishState struct {
 	amnt uint16 // Entered amount
@@ -92,13 +88,13 @@ type bankidState struct {
 	available bool
 }
 
+// "Sloppy" way of handling error information
 type errInfo struct {
 	errLCDMsg string
 	errNr     byte
 	errMsg    string
 }
 
-// Global, ugly, variables
 var (
 	mainMode byte = swishMode
 	oldMode  byte = 255
@@ -160,7 +156,7 @@ func runSwishMode(cfg *config, keypad chan uint8, disp chan displayCmd, state *s
 		disp <- displayCmd{cmd: lcdMoveLeft}
 		state.pos++
 
-	case 10: // Send, or '#', key pressed
+	case 10: // '#' (send) key pressed
 		if state.amnt == 0 && state.pos == 0 {
 			return
 		}
@@ -169,10 +165,8 @@ func runSwishMode(cfg *config, keypad chan uint8, disp chan displayCmd, state *s
 			showDisplaySwish(disp, state.amnt, state.pos)
 			return
 		}
-		// Maybe should einkBusy = true here...
 		showDisplayWait(disp)
 		img, err := getSwishImage(cfg, state.amnt)
-		// ... and einkBusy = false here
 		if err != nil {
 			qrErr = errInfo{errNr: 1, errMsg: "Error getting swish image: " + err.Error(), errLCDMsg: "Error 1"}
 			mainMode = errorMode
@@ -184,7 +178,7 @@ func runSwishMode(cfg *config, keypad chan uint8, disp chan displayCmd, state *s
 		showDisplayScanW(disp)
 		showDisplaySwish(disp, state.amnt, state.pos)
 
-	case 11: // Clear, or '*', key pressed
+	case 11: // '*' (clear) key pressed
 		state.amnt = 0
 		state.pos = 0
 		showDisplaySwish(disp, state.amnt, state.pos)
@@ -219,7 +213,6 @@ func runBankidMode(cfg *config, keypad chan uint8, disp chan displayCmd, state *
 	type bidCmd struct {
 		ri, msg, txt string
 	}
-	// bidQueue := make(chan bidCmd)
 	bidQueue := make(chan struct{ r, m, d string })
 
 	bc, err := bankid.New("", getCallBackFunc(cfg, bidQueue))
@@ -356,13 +349,11 @@ func sendImgToEink(cfg *config, buf *bytes.Buffer) {
 		mainMode = errorMode
 		return
 	}
-	//fmt.Println("Response:", string(bdy))
-
 	einkBusy = false
 }
 
 func getConfig(nf string) (*config, error) {
-	// TODO: Get this from file instead
+	// TODO: Get this from config file instead
 	c := &config{
 		swishPhoneNr:     "9008095",
 		eInkServerIPAddr: "192.168.1.186",
@@ -519,7 +510,7 @@ func keypad(queue chan uint8) {
 	defer settingsPin.Detect(rpio.NoEdge)
 
 	var ch uint8
-	for { // Interrupts disabled due to bug, active polling instead :(
+	for {
 		if keypadPin.EdgeDetected() {
 			for p := 3; p >= 0; p-- {
 				ch |= uint8(rpio.ReadPin(inputs[p])) << (3 - p)
